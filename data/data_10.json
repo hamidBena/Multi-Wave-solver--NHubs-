@@ -1,0 +1,561 @@
+{
+  "parameters": {
+    "numberOfNodes": 10,
+    "numberOfHubs": 2,
+    "alpha": 0.5
+  },
+  "nodes": [
+    {
+      "node": 0,
+      "x": 20.9794522036352467,
+      "y": 4.242939689437186
+    },
+    {
+      "node": 1,
+      "x": 42.18419773788447,
+      "y": 50.39341343719573
+    },
+    {
+      "node": 2,
+      "x": 48.80391692216756,
+      "y": 26.892894720582984
+    },
+    {
+      "node": 3,
+      "x": 23.742333190639343,
+      "y": 48.31080890924822
+    },
+    {
+      "node": 4,
+      "x": 40.07230038818913,
+      "y": 67.77928823847878
+    },
+    {
+      "node": 5,
+      "x": 5.318777133536501,
+      "y": 74.67141175974095
+    },
+    {
+      "node": 6,
+      "x": 16.79233618382543,
+      "y": 35.52639971265139
+    },
+    {
+      "node": 7,
+      "x": 38.516080226623195,
+      "y": 98.56783810865919
+    },
+    {
+      "node": 8,
+      "x": 32.92039499971937,
+      "y": 79.02796772699179
+    },
+    {
+      "node": 9,
+      "x": 68.52624769989669,
+      "y": 78.58332285708232
+    }
+  ],
+  "edges": [
+    {
+      "fromNode": 0,
+      "toNode": 0,
+      "q": 0
+    },
+    {
+      "fromNode": 0,
+      "toNode": 1,
+      "q": 40
+    },
+    {
+      "fromNode": 0,
+      "toNode": 2,
+      "q": 63
+    },
+    {
+      "fromNode": 0,
+      "toNode": 3,
+      "q": 26
+    },
+    {
+      "fromNode": 0,
+      "toNode": 4,
+      "q": 34
+    },
+    {
+      "fromNode": 0,
+      "toNode": 5,
+      "q": 72
+    },
+    {
+      "fromNode": 0,
+      "toNode": 6,
+      "q": 67
+    },
+    {
+      "fromNode": 0,
+      "toNode": 7,
+      "q": 41
+    },
+    {
+      "fromNode": 0,
+      "toNode": 8,
+      "q": 35
+    },
+    {
+      "fromNode": 0,
+      "toNode": 9,
+      "q": 54
+    },
+    {
+      "fromNode": 1,
+      "toNode": 0,
+      "q": 72
+    },
+    {
+      "fromNode": 1,
+      "toNode": 1,
+      "q": 0
+    },
+    {
+      "fromNode": 1,
+      "toNode": 2,
+      "q": 64
+    },
+    {
+      "fromNode": 1,
+      "toNode": 3,
+      "q": 71
+    },
+    {
+      "fromNode": 1,
+      "toNode": 4,
+      "q": 44
+    },
+    {
+      "fromNode": 1,
+      "toNode": 5,
+      "q": 70
+    },
+    {
+      "fromNode": 1,
+      "toNode": 6,
+      "q": 55
+    },
+    {
+      "fromNode": 1,
+      "toNode": 7,
+      "q": 27
+    },
+    {
+      "fromNode": 1,
+      "toNode": 8,
+      "q": 69
+    },
+    {
+      "fromNode": 1,
+      "toNode": 9,
+      "q": 33
+    },
+    {
+      "fromNode": 2,
+      "toNode": 0,
+      "q": 41
+    },
+    {
+      "fromNode": 2,
+      "toNode": 1,
+      "q": 38
+    },
+    {
+      "fromNode": 2,
+      "toNode": 2,
+      "q": 0
+    },
+    {
+      "fromNode": 2,
+      "toNode": 3,
+      "q": 35
+    },
+    {
+      "fromNode": 2,
+      "toNode": 4,
+      "q": 53
+    },
+    {
+      "fromNode": 2,
+      "toNode": 5,
+      "q": 34
+    },
+    {
+      "fromNode": 2,
+      "toNode": 6,
+      "q": 37
+    },
+    {
+      "fromNode": 2,
+      "toNode": 7,
+      "q": 33
+    },
+    {
+      "fromNode": 2,
+      "toNode": 8,
+      "q": 56
+    },
+    {
+      "fromNode": 2,
+      "toNode": 9,
+      "q": 41
+    },
+    {
+      "fromNode": 3,
+      "toNode": 0,
+      "q": 69
+    },
+    {
+      "fromNode": 3,
+      "toNode": 1,
+      "q": 53
+    },
+    {
+      "fromNode": 3,
+      "toNode": 2,
+      "q": 63
+    },
+    {
+      "fromNode": 3,
+      "toNode": 3,
+      "q": 0
+    },
+    {
+      "fromNode": 3,
+      "toNode": 4,
+      "q": 59
+    },
+    {
+      "fromNode": 3,
+      "toNode": 5,
+      "q": 34
+    },
+    {
+      "fromNode": 3,
+      "toNode": 6,
+      "q": 27
+    },
+    {
+      "fromNode": 3,
+      "toNode": 7,
+      "q": 47
+    },
+    {
+      "fromNode": 3,
+      "toNode": 8,
+      "q": 64
+    },
+    {
+      "fromNode": 3,
+      "toNode": 9,
+      "q": 26
+    },
+    {
+      "fromNode": 4,
+      "toNode": 0,
+      "q": 56
+    },
+    {
+      "fromNode": 4,
+      "toNode": 1,
+      "q": 61
+    },
+    {
+      "fromNode": 4,
+      "toNode": 2,
+      "q": 42
+    },
+    {
+      "fromNode": 4,
+      "toNode": 3,
+      "q": 32
+    },
+    {
+      "fromNode": 4,
+      "toNode": 4,
+      "q": 0
+    },
+    {
+      "fromNode": 4,
+      "toNode": 5,
+      "q": 40
+    },
+    {
+      "fromNode": 4,
+      "toNode": 6,
+      "q": 30
+    },
+    {
+      "fromNode": 4,
+      "toNode": 7,
+      "q": 73
+    },
+    {
+      "fromNode": 4,
+      "toNode": 8,
+      "q": 50
+    },
+    {
+      "fromNode": 4,
+      "toNode": 9,
+      "q": 51
+    },
+    {
+      "fromNode": 5,
+      "toNode": 0,
+      "q": 32
+    },
+    {
+      "fromNode": 5,
+      "toNode": 1,
+      "q": 31
+    },
+    {
+      "fromNode": 5,
+      "toNode": 2,
+      "q": 42
+    },
+    {
+      "fromNode": 5,
+      "toNode": 3,
+      "q": 47
+    },
+    {
+      "fromNode": 5,
+      "toNode": 4,
+      "q": 42
+    },
+    {
+      "fromNode": 5,
+      "toNode": 5,
+      "q": 0
+    },
+    {
+      "fromNode": 5,
+      "toNode": 6,
+      "q": 61
+    },
+    {
+      "fromNode": 5,
+      "toNode": 7,
+      "q": 44
+    },
+    {
+      "fromNode": 5,
+      "toNode": 8,
+      "q": 74
+    },
+    {
+      "fromNode": 5,
+      "toNode": 9,
+      "q": 34
+    },
+    {
+      "fromNode": 6,
+      "toNode": 0,
+      "q": 60
+    },
+    {
+      "fromNode": 6,
+      "toNode": 1,
+      "q": 46
+    },
+    {
+      "fromNode": 6,
+      "toNode": 2,
+      "q": 42
+    },
+    {
+      "fromNode": 6,
+      "toNode": 3,
+      "q": 74
+    },
+    {
+      "fromNode": 6,
+      "toNode": 4,
+      "q": 65
+    },
+    {
+      "fromNode": 6,
+      "toNode": 5,
+      "q": 71
+    },
+    {
+      "fromNode": 6,
+      "toNode": 6,
+      "q": 0
+    },
+    {
+      "fromNode": 6,
+      "toNode": 7,
+      "q": 52
+    },
+    {
+      "fromNode": 6,
+      "toNode": 8,
+      "q": 25
+    },
+    {
+      "fromNode": 6,
+      "toNode": 9,
+      "q": 43
+    },
+    {
+      "fromNode": 7,
+      "toNode": 0,
+      "q": 60
+    },
+    {
+      "fromNode": 7,
+      "toNode": 1,
+      "q": 68
+    },
+    {
+      "fromNode": 7,
+      "toNode": 2,
+      "q": 28
+    },
+    {
+      "fromNode": 7,
+      "toNode": 3,
+      "q": 73
+    },
+    {
+      "fromNode": 7,
+      "toNode": 4,
+      "q": 32
+    },
+    {
+      "fromNode": 7,
+      "toNode": 5,
+      "q": 64
+    },
+    {
+      "fromNode": 7,
+      "toNode": 6,
+      "q": 26
+    },
+    {
+      "fromNode": 7,
+      "toNode": 7,
+      "q": 0
+    },
+    {
+      "fromNode": 7,
+      "toNode": 8,
+      "q": 53
+    },
+    {
+      "fromNode": 7,
+      "toNode": 9,
+      "q": 42
+    },
+    {
+      "fromNode": 8,
+      "toNode": 0,
+      "q": 70
+    },
+    {
+      "fromNode": 8,
+      "toNode": 1,
+      "q": 27
+    },
+    {
+      "fromNode": 8,
+      "toNode": 2,
+      "q": 55
+    },
+    {
+      "fromNode": 8,
+      "toNode": 3,
+      "q": 71
+    },
+    {
+      "fromNode": 8,
+      "toNode": 4,
+      "q": 51
+    },
+    {
+      "fromNode": 8,
+      "toNode": 5,
+      "q": 67
+    },
+    {
+      "fromNode": 8,
+      "toNode": 6,
+      "q": 52
+    },
+    {
+      "fromNode": 8,
+      "toNode": 7,
+      "q": 63
+    },
+    {
+      "fromNode": 8,
+      "toNode": 8,
+      "q": 0
+    },
+    {
+      "fromNode": 8,
+      "toNode": 9,
+      "q": 53
+    },
+    {
+      "fromNode": 9,
+      "toNode": 0,
+      "q": 70
+    },
+    {
+      "fromNode": 9,
+      "toNode": 1,
+      "q": 29
+    },
+    {
+      "fromNode": 9,
+      "toNode": 2,
+      "q": 43
+    },
+    {
+      "fromNode": 9,
+      "toNode": 3,
+      "q": 68
+    },
+    {
+      "fromNode": 9,
+      "toNode": 4,
+      "q": 41
+    },
+    {
+      "fromNode": 9,
+      "toNode": 5,
+      "q": 62
+    },
+    {
+      "fromNode": 9,
+      "toNode": 6,
+      "q": 32
+    },
+    {
+      "fromNode": 9,
+      "toNode": 7,
+      "q": 61
+    },
+    {
+      "fromNode": 9,
+      "toNode": 8,
+      "q": 28
+    },
+    {
+      "fromNode": 9,
+      "toNode": 9,
+      "q": 0
+    }
+  ]
+}

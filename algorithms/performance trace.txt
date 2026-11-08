@@ -1,0 +1,154 @@
+initial profiling results:
+            flat  flat%   sum%        cum   cum%
+      124.23s 40.41% 40.41%    297.36s 96.73%  NHubs/algorithms.(*MultiWave).affectedCost
+      96.50s 31.39% 71.80%     96.50s 31.39%  math.archHypot
+      45.46s 14.79% 86.59%    145.99s 47.49%  NHubs/model.(*Instance).Distance
+      21.75s  7.08% 93.67%    172.07s 55.97%  NHubs/model.(*Instance).Cost
+      4.32s  1.41% 95.07%      4.32s  1.41%  NHubs/model.QuantityMatrix.At (inline)
+      4.03s  1.31% 96.38%    100.53s 32.70%  math.Hypot (inline)
+      0.30s 0.098% 97.33%    301.77s 98.17%  NHubs/algorithms.(*MultiWave).bestMove.func1
+
+
+      Showing top 10 nodes out of 21
+            flat  flat%   sum%        cum   cum%
+      0.30s 0.098% 0.098%    301.77s 98.17%  NHubs/algorithms.(*MultiWave).bestMove.func1
+      124.23s 40.41% 40.51%    297.36s 96.73%  NHubs/algorithms.(*MultiWave).affectedCost
+      21.75s  7.08% 47.58%    172.07s 55.97%  NHubs/model.(*Instance).Cost
+      45.46s 14.79% 62.37%    145.99s 47.49%  NHubs/model.(*Instance).Distance
+      4.03s  1.31% 63.68%    100.53s 32.70%  math.Hypot (inline)
+
+
+after distance caching: to cut off the "Hypot" cost
+    Showing nodes accounting for 280.64s, 96.89% of 289.65s total
+      Dropped 356 nodes (cum <= 1.45s)
+      Showing top 10 nodes out of 21
+            flat  flat%   sum%        cum   cum%
+      219.52s 75.79% 75.79%    278.17s 96.04%  NHubs/algorithms.(*MultiWave).affectedCost
+      30.07s 10.38% 86.17%     57.09s 19.71%  NHubs/model.(*Instance).Cost
+      23.05s  7.96% 94.13%     23.10s  7.98%  NHubs/model.(*Instance).Distance (inline)
+      3.87s  1.34% 95.46%      3.89s  1.34%  NHubs/model.QuantityMatrix.At (inline)
+      0.36s  0.12% 96.64%    283.40s 97.84%  NHubs/algorithms.(*MultiWave).bestMove.func1
+
+    Showing nodes accounting for 277.21s, 95.71% of 289.65s total
+      Dropped 356 nodes (cum <= 1.45s)
+      Showing top 10 nodes out of 21
+            flat  flat%   sum%        cum   cum%
+      0.36s  0.12%  0.12%    283.40s 97.84%  NHubs/algorithms.(*MultiWave).bestMove.func1
+      219.52s 75.79% 75.91%    278.17s 96.04%  NHubs/algorithms.(*MultiWave).affectedCost
+      30.07s 10.38% 86.29%     57.09s 19.71%  NHubs/model.(*Instance).Cost
+      23.05s  7.96% 94.25%     23.10s  7.98%  NHubs/model.(*Instance).Distance (inline)
+
+      the affectedCost function : "list affectedCost"
+      Total: 289.65s
+      ROUTINE ======================== NHubs/algorithms.(*MultiWave).affectedCost in D:\AI2026\TP_miniprojet\PorjectTake2\algorithms\multiWave.go
+      219.52s    278.17s (flat, cum) 96.04% of Total
+            30ms       50ms    375:func (m *MultiWave) affectedCost(solution *model.Solution, nodes []int) float64 {
+      100ms      1.26s    376:   affected := make([]bool, len(solution.Assign))
+            40ms       40ms    377:   for _, node := range nodes {
+            40ms       40ms    378:           affected[node] = true
+            .          .    379:   }
+            .          .    380:   total := 0.0
+      
+      v This loop has the biggest impact v
+      5.52s      5.54s    381:   for from := range solution.Assign {
+      74.87s     75.06s    382:           for to := from + 1; to < len(solution.Assign); to++ {
+      123.85s    123.99s    383:                   if affected[from] || affected[to] {
+      15.07s     72.19s    384:                           total += m.instance.Cost(*solution, from, to)
+            .          .    385:                   }
+            .          .    386:           }
+            .          .    387:   }
+            .          .    388:   return total
+            .          .    389:}
+
+
+after affectedCost function optimization (only iterate over affected nodes):
+      Showing nodes accounting for 60.04s, 84.63% of 70.94s total
+      Dropped 444 nodes (cum <= 0.35s)
+      Showing top 10 nodes out of 93
+            flat  flat%   sum%        cum   cum%
+      19.51s 27.50% 27.50%     34.23s 48.25%  NHubs/model.(*Instance).Cost
+      12.07s 17.01% 44.52%     12.07s 17.01%  NHubs/model.(*Instance).Distance (inline)
+      6.17s  8.70% 69.64%     40.96s 57.74%  NHubs/algorithms.(*MultiWave).affectedCost
+      2.65s  3.74% 78.73%      2.65s  3.74%  NHubs/model.QuantityMatrix.At (inline)
+      0.48s  0.68% 84.63%      3.38s  4.76%  github.com/hajimehoshi/ebiten/v2/internal/atlas.(*Image).drawTriangles
+
+      Showing nodes accounting for 25.90s, 36.51% of 70.94s total
+      Dropped 444 nodes (cum <= 0.35s)
+      Showing top 10 nodes out of 93
+            flat  flat%   sum%        cum   cum%
+      0.22s  0.31%  0.31%     44.36s 62.53%  NHubs/algorithms.(*MultiWave).bestMove.func1
+      6.17s  8.70%  9.01%     40.96s 57.74%  NHubs/algorithms.(*MultiWave).affectedCost
+      19.51s 27.50% 36.51%     34.23s 48.25%  NHubs/model.(*Instance).Cost
+
+the cost function: "list Cost"
+      Total: 70.94s
+      6.17s     40.96s (flat, cum) 57.74% of Total
+            20ms       20ms    375:func (m *MultiWave) affectedCost(solution *model.Solution, nodes []int) float64 {
+            .          .    376:   n := len(solution.Assign)
+            10ms      810ms    377:   affected := make([]bool, n)
+            .          .    378:
+            20ms       20ms    379:   for _, node := range nodes {
+            .          .    380:           affected[node] = true
+            .          .    381:   }
+            .          .    382:
+            .          .    383:   total := 0.0
+      260ms      260ms    384:   for from := 0; from < n; from++ {
+      1.70s      1.70s    385:           if !affected[from] {
+            .          .    386:                   continue
+            .          .    387:           }
+            .          .    388:
+      330ms      330ms    389:           for to := 0; to < n; to++ {
+            10ms       10ms    390:                   if from == to {
+            .          .    391:                           continue
+            .          .    392:                   }
+            .          .    393:
+            .          .    394:                   // Count pairs where both nodes are affected only once.
+      1.91s      1.91s    395:                   if affected[to] && to < from {
+            .          .    396:                           continue
+            .          .    397:                   }
+            .          .    398:
+      1.81s     35.80s    399:                   total += m.instance.Cost(*solution, from, to)
+            .          .    400:           }
+            .          .    401:   }
+            .          .    402:
+      100ms      100ms    403:   return total
+            .          .    404:}
+            .          .    405:
+            .          .    406:func (m *MultiWave) addElite(solution model.Solution, cost float64) {
+            .          .    407:   for _, candidate := range m.elite {
+            .          .    408:           if slices.Equal(candidate.Solution.Assign, solution.Assign) {
+      19.51s     34.23s (flat, cum) 48.25% of Total
+      950ms      950ms     27:func (i *Instance) Cost(solution Solution, from, to int) float64 {
+            .          .     28:   // Bounds check
+      1.39s      1.39s     29:   if from < 0 || from >= len(i.Nodes) || to < 0 || to >= len(i.Nodes) {
+            .          .     30:           return math.Inf(1)
+            .          .     31:   }
+            .          .     32:
+            .          .     33:   // Get the assigned hub for the 'from' node and the 'to' node
+            .          .     34:   h1 := solution.Assign[from]
+      160ms      160ms     35:   h2 := solution.Assign[to]
+            .          .     36:
+            .          .     37:   // Calculate the 3-leg unit transportation cost path:
+            .          .     38:   // 1. Collection: from -> h1
+            .      5.16s     39:   costFromToHub1 := i.Distance(from, h1)
+            .          .     40:
+            .          .     41:   // 2. Transfer: h1 -> h2 (discounted by alpha)
+      1.58s      3.02s     42:   costHub1ToHub2 := i.Parameters.Alpha * i.Distance(h1, h2)
+            .          .     43:
+            .          .     44:   // 3. Distribution: h2 -> to
+            .      5.47s     45:   costHub2ToDst := i.Distance(h2, to)
+            .          .     46:
+      3.70s      3.70s     47:   unitCost := costFromToHub1 + costHub1ToHub2 + costHub2ToDst
+      3.16s      5.81s     48:   quantity := float64(i.Quantity.At(from, to))
+            .          .     49:
+      8.57s      8.57s     50:   return unitCost * quantity                                            <---- this biggest impact is the multiplication now, which i don't really know what to do about it.
+            .          .     51:}
+
+
+
+Before: 289.65 seconds
+After:   70.94 seconds
+Speedup: approximately 4.1×
+Time saved: approximately 218.7 seconds
+
+the affectedCost function went from 219.50s down to only 70.94s (the file used for profiling is the 100 nodes file)

@@ -1,0 +1,57 @@
+        Nodes      |    B&B Tree     |            Objective Bounds              |  Dynamic Constraints |       Work      
+Src  Proc. InQueue |  Leaves   Expl. | BestBound       BestSol              Gap |   Cuts   InLp Confl. | LpIters     Time
+
+         0       0         0   0.00%   0               inf                  inf        0      0      0         0     0.5s
+ R       0       0         0   0.00%   1313110.483368  2846693.585455    53.87%        0      0      0      1359     1.3s
+ C       0       0         0   0.00%   1322664.721054  2839813.709647    53.42%     1901    175      0      2212     1.8s
+         0       0         0   0.00%   1327899.438145  2839813.709647    53.24%     4831    561      0      5646     6.9s
+ L       0       0         0   0.00%   1327910.876781  1407685.276836     5.67%     3788    582      0      5751    12.8s
+
+17.8% inactive integer columns, restarting
+Model after restart has 1165 rows, 15514 cols (514 bin., 0 int., 0 impl., 15000 cont., 0 dom.fix.), and 38193 nonzeros
+
+         0       0         0   0.00%   1327913.513909  1407685.276836     5.67%      307      0      0     32697    13.1s
+         0       0         0   0.00%   1327913.513909  1407685.276836     5.67%      307    269     10     33425    13.3s
+         2       1         0  50.00%   1330935.402139  1407685.276836     5.45%      587    274    123    113789    26.8s
+         7       4         0  53.12%   1333498.20358   1407685.276836     5.27%     2381    740    315    146099    33.7s
+        19       8         0  58.98%   1333498.20358   1407685.276836     5.27%     9110    772    652    159869    39.0s
+        30       7         1  72.27%   1346307.953553  1407685.276836     4.36%    10405    942    922    178939    45.6s
+        44       9         3  80.08%   1349106.206858  1407685.276836     4.16%     9778    812   1215    195673    51.2s
+        54       7         4  85.16%   1349106.206858  1407685.276836     4.16%    10096    708   1541    210495    56.3s
+        62       7         6  87.50%   1361175.56502   1407685.276836     3.30%    10689    910   1681    229854    63.3s
+        80       5        10  88.67%   1364198.953061  1407685.276836     3.09%    10677    964   1980    249789    69.8s
+        89       0        14 100.00%   1379552.680525  1407685.276836     2.00%    11283   1177   2261    259535    72.9s
+
+Solving report
+  Status            Optimal
+  Primal bound      1407685.27684
+  Dual bound        1379552.68053
+  Gap               2% (tolerance: 2%)
+  P-D integral      8.96435778288
+  Solution status   feasible
+                    1407685.27684 (objective)
+                    0 (bound viol.)
+                    2.22044604925e-16 (int. viol.)
+                    0 (row viol.)
+  Timing            72.90
+                    0.49 (Presolve)
+                        MIP    time [calls] = 0.14 [1]
+                        subMIP time [calls] = 0.35 [10]
+                    72.40 (Solve)
+                        MIP    time [calls] = 67.29 [1]
+                        subMIP time [calls] = 5.11 [3]
+                    0.00 (Postsolve)
+                        MIP    time [calls] = 0.00 [1]
+                        subMIP time [calls] = 0.00 [10]
+  Max sub-MIP depth 8
+  Nodes             89
+  Repair LPs        0
+  LP iterations     259535
+                    141197 (strong br.)
+                    33215 (separation)
+                    26915 (heuristics)
+
+Optimal 1407685.2768362926 (data_25.json, 25 nodes)
+MultiWave solver: 1407685.275901
+
+25 node optimal solution!!!
