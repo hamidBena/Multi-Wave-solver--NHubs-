@@ -27,6 +27,8 @@ const (
 	renderFPSLimit            = 60
 	frameTimeSmoothing        = 0.2
 	solverBudgetFraction      = 0.6
+	terminateButtonY          = 430
+	terminateButtonHeight     = 32
 	backgroundColor           = uint8(13)
 	panelWidth                = 290
 )
@@ -124,6 +126,14 @@ func (r *Renderer) Update() error {
 	if inpututil.IsKeyJustPressed(ebiten.KeyP) {
 		r.running = false
 	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyT) || r.terminateButtonPressed() {
+		r.running = false
+		r.engine.Terminate()
+		r.updateSolution()
+		if err := r.logIfFinished(); err != nil {
+			return err
+		}
+	}
 	if inpututil.IsKeyJustPressed(ebiten.KeyBracketLeft) && r.iterationsPerFrame > 1 {
 		r.iterationsPerFrame--
 	}
@@ -163,6 +173,7 @@ func (r *Renderer) Update() error {
 				return loadErr
 			}
 			r.instance, r.path = instance, path
+			r.engine.SetDataset(path)
 			r.runLogged = false
 			r.solverTime = 0
 			r.nodeTraffic, r.maxTraffic = trafficByNode(instance)
@@ -408,7 +419,7 @@ func (r *Renderer) drawPanel(screen *ebiten.Image) {
 		fmt.Sprintf("Hubs: %d / %d", len(r.solution.Hubs), r.instance.Parameters.HubCount),
 		fmt.Sprintf("Status: %s", statusText(snapshot.Finished, r.running)),
 		fmt.Sprintf("Iterations/frame: %d", r.iterationsPerFrame),
-		fmt.Sprintf("Target updates: %.0f  Actual: %.1f", targetFPS, r.updateFPS()),
+		fmt.Sprintf("Target updates: %d  Actual: %.1f", targetFPS, r.updateFPS()),
 		fmt.Sprintf("Render FPS: %.1f", r.renderFPS()),
 		fmt.Sprintf("Zoom: %.2fx", r.zoom),
 		"",
@@ -416,6 +427,7 @@ func (r *Renderer) drawPanel(screen *ebiten.Image) {
 		"Space  step",
 		"Enter  run / pause",
 		"P      pause",
+		"T      terminate",
 		"[ / ]  iterations/frame (manual)",
 		"O      open JSON",
 		"S      save solution",
@@ -423,24 +435,48 @@ func (r *Renderer) drawPanel(screen *ebiten.Image) {
 		"R      reset view",
 		"Wheel  zoom",
 		"Drag   pan",
-		"",
+	}
+
+	for index, line := range lines {
+		text.Draw(screen, line, r.font, panelX+18, 28+index*20, color.RGBA{235, 240, 250, 255})
+	}
+	ebitenutil.DrawRect(screen, float64(panelX+18), terminateButtonY,
+		float64(panelWidth-36), terminateButtonHeight, color.RGBA{38, 45, 70, 255})
+	text.Draw(screen, "Terminate solver (T)", r.font, panelX+70, terminateButtonY+22,
+		color.RGBA{235, 240, 250, 255})
+
+	infoLines := []string{
 		fmt.Sprintf("Total traffic: %.0f", totalTraffic(r.nodeTraffic)),
 		fmt.Sprintf("Cost: %.2f", solutionCost(r.instance, r.solution)),
 		"",
 		"Traffic: node size/color",
 		"Blue low  ->  red high",
 	}
-
+	for index, line := range infoLines {
+		text.Draw(screen, line, r.font, panelX+18, 490+index*20, color.RGBA{235, 240, 250, 255})
+	}
 	if r.selected >= 0 && r.selected < len(r.solution.Assign) {
 		hub := r.solution.Assign[r.selected]
-		lines = append(lines, "", fmt.Sprintf("Selected node: %d", r.selected),
-			fmt.Sprintf("Assigned hub: %d", hub),
+		selectedLines := []string{
+			"Selected node: " + fmt.Sprintf("%d", r.selected),
+			"Assigned hub: " + fmt.Sprintf("%d", hub),
 			fmt.Sprintf("Node traffic: %.0f", r.nodeTraffic[r.selected]),
-			fmt.Sprintf("Hub load: %d nodes", assignedCount(r.solution.Assign, hub)))
+			fmt.Sprintf("Hub load: %d nodes", assignedCount(r.solution.Assign, hub)),
+		}
+		for index, line := range selectedLines {
+			text.Draw(screen, line, r.font, panelX+18, 610+index*20, color.RGBA{235, 240, 250, 255})
+		}
 	}
-	for index, line := range lines {
-		text.Draw(screen, line, r.font, panelX+18, 28+index*20, color.RGBA{235, 240, 250, 255})
+}
+
+func (r *Renderer) terminateButtonPressed() bool {
+	if !inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		return false
 	}
+	x, y := ebiten.CursorPosition()
+	panelX := r.width - panelWidth
+	return x >= panelX+18 && x < r.width-18 &&
+		y >= terminateButtonY && y < terminateButtonY+terminateButtonHeight
 }
 
 func (r *Renderer) adjustIterations() {

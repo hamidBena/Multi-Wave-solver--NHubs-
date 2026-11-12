@@ -3,13 +3,19 @@ import math
 import argparse
 from pathlib import Path
 
+"""Solve a hub assignment instance with PuLP and HiGHS/CBC.
+
+For large instances this is a reference MIP model: use --time-limit to obtain
+the best feasible solution found so far rather than expecting a proof quickly.
+"""
+
 import pulp
 
 parser = argparse.ArgumentParser(description="Solve a hub assignment instance exactly.")
 parser.add_argument(
     "data_path",
     nargs="?",
-    default="data/data_50.json",
+    default="data/data_25.json",
     help="JSON dataset path, relative to the project directory by default",
 )
 parser.add_argument(
@@ -44,7 +50,15 @@ nodes = sorted(d["nodes"], key=lambda t: t["node"])
 X = [t["x"] for t in nodes]
 Y = [t["y"] for t in nodes]
 n = len(X)
-CAP = n // P          # 5 here; assumes n divisible by P
+configured_capacities = d["parameters"].get("hubCapacities")
+if configured_capacities is None:
+    capacities = [n // P + (slot < n % P) for slot in range(P)]
+else:
+    capacities = [int(capacity) for capacity in configured_capacities]
+    if len(capacities) != P or any(capacity < 1 for capacity in capacities):
+        raise ValueError("hubCapacities must contain one positive value per hub")
+    if sum(capacities) != n:
+        raise ValueError(f"hubCapacities must sum to {n}, got {sum(capacities)}")
 R = range(n)
 
 q = [[0] * n for _ in R]
@@ -72,6 +86,7 @@ def variable_dicts(name, indices, **kwargs):
 
 x = variable_dicts("x", (R, R), cat="Binary")  # x[i][k]: i assigned to hub k
 f = variable_dicts("f", (R, R, R), lowBound=0)  # flow from origin i on hub arc k->l
+z = variable_dicts("z", (R, range(P)), cat="Binary")
 
 m += (pulp.lpSum(w[i]*dist[i][k]*x[i][k] for i in R for k in R)
       + alpha*pulp.lpSum(dist[k][l]*f[i][k][l]
@@ -83,7 +98,13 @@ for i in R:
         m += x[i][k] <= x[k][k]
 m += pulp.lpSum(x[k][k] for k in R) == P
 for k in R:
-    m += pulp.lpSum(x[i][k] for i in R) == CAP*x[k][k]   # exactly 5 incl. the hub
+    m += pulp.lpSum(z[k][slot] for slot in range(P)) == x[k][k]
+for slot in range(P):
+    m += pulp.lpSum(z[k][slot] for k in R) == 1
+for k in R:
+    m += pulp.lpSum(x[i][k] for i in R) == pulp.lpSum(
+        capacities[slot] * z[k][slot] for slot in range(P)
+    )
 
 for i in R:
     for k in R:

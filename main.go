@@ -51,6 +51,44 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	engine.SetDataset(path)
+	var loggedRunID string
+	var lastLoggedCost float64
+	var hasLoggedCost bool
+	var runLogPath string
+	engine.SetStepLogger(func(step solver.StepLog) error {
+		if !step.Progress.Available {
+			return nil
+		}
+		if step.RunID != loggedRunID {
+			loggedRunID = step.RunID
+			hasLoggedCost = false
+			runLogPath = ""
+		}
+		if hasLoggedCost && step.Progress.Cost == lastLoggedCost {
+			return nil
+		}
+		lastLoggedCost = step.Progress.Cost
+		hasLoggedCost = true
+		if runLogPath == "" {
+			var err error
+			runLogPath, err = model.NewMultiWaveLogPath("runs", step.Solver, step.Dataset, step.RunID)
+			if err != nil {
+				return err
+			}
+		}
+		return model.AppendMultiWaveLog(
+			runLogPath,
+			step.Solver,
+			step.Dataset,
+			step.RunID,
+			step.Progress.Wave,
+			step.Progress.WaveIteration,
+			step.Iteration,
+			step.Progress.Cost,
+			step.Solution,
+		)
+	})
 
 	ebiten.SetWindowSize(1280, 800)
 	ebiten.SetWindowTitle("NHubs viewer")

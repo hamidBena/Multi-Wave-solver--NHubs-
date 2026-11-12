@@ -3,6 +3,7 @@ package solver
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"NHubs/model"
 )
@@ -13,12 +14,24 @@ type Snapshot struct {
 	Finished  bool
 }
 
+type StepLog struct {
+	RunID     string
+	Solver    string
+	Dataset   string
+	Iteration uint64
+	Progress  Progress
+	Solution  model.Solution
+}
+
 type Engine struct {
 	mu                 sync.RWMutex
 	solver             Iterative
 	snapshot           Snapshot
 	iteration          uint64
 	visualizationEvery uint64
+	runID              string
+	dataset            string
+	stepLogger         func(StepLog) error
 }
 
 func NewEngine(solver Iterative, initial model.Solution, visualizationEvery uint64) (*Engine, error) {
@@ -32,6 +45,7 @@ func NewEngine(solver Iterative, initial model.Solution, visualizationEvery uint
 		solver:             solver,
 		snapshot:           Snapshot{Solution: cloneSolution(initial)},
 		visualizationEvery: visualizationEvery,
+		runID:              newRunID(),
 	}, nil
 }
 
@@ -46,6 +60,9 @@ func (e *Engine) Step() error {
 		return err
 	}
 	e.iteration++
+	if err := e.logStepLocked(result); err != nil {
+		return err
+	}
 	e.publishLocked(result)
 	return nil
 }
@@ -63,6 +80,10 @@ func (e *Engine) Run(iterations uint64) error {
 			return err
 		}
 		e.iteration++
+		if err := e.logStepLocked(result); err != nil {
+			e.mu.Unlock()
+			return err
+		}
 		if result.Done || e.iteration%e.visualizationEvery == 0 {
 			e.publishLocked(result)
 		}
@@ -79,8 +100,21 @@ func (e *Engine) Replace(solver Iterative, initial model.Solution) error {
 	defer e.mu.Unlock()
 	e.solver = solver
 	e.iteration = 0
+	e.runID = newRunID()
 	e.snapshot = Snapshot{Solution: cloneSolution(initial)}
 	return nil
+}
+
+func (e *Engine) SetStepLogger(logger func(StepLog) error) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.stepLogger = logger
+}
+
+func (e *Engine) SetDataset(dataset string) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.dataset = dataset
 }
 
 func (e *Engine) publishLocked(result StepResult) {
@@ -103,9 +137,40 @@ func (e *Engine) Finished() bool {
 	return e.snapshot.Finished
 }
 
+func (e *Engine) Terminate() {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.snapshot.Finished = true
+}
+
 func (e *Engine) SolverName() string {
 	e.mu.RLock()
 	defer e.mu.RUnlock()
+	if named, ok := e.solver.(Named); ok {
+		return named.Name()
+	}
+	return "unnamed"
+}
+
+func (e *Engine) logStepLocked(result StepResult) error {
+	if e.stepLogger == nil {
+		return nil
+	}
+	progress := Progress{}
+	if provider, ok := e.solver.(ProgressProvider); ok {
+		progress = provider.Progress()
+	}
+	return e.stepLogger(StepLog{
+		RunID:     e.runID,
+		Solver:    e.solverNameLocked(),
+		Dataset:   e.dataset,
+		Iteration: e.iteration,
+		Progress:  progress,
+		Solution:  cloneSolution(result.Solution),
+	})
+}
+
+func (e *Engine) solverNameLocked() string {
 	if named, ok := e.solver.(Named); ok {
 		return named.Name()
 	}
@@ -121,6 +186,7 @@ func (e *Engine) RestoreWithSolver(solver Iterative, saved Snapshot) {
 	defer e.mu.Unlock()
 	e.solver = solver
 	e.iteration = saved.Iteration
+	e.runID = newRunID()
 	e.snapshot = Snapshot{
 		Iteration: saved.Iteration,
 		Solution:  cloneSolution(saved.Solution),
@@ -132,4 +198,8 @@ func cloneSolution(solution model.Solution) model.Solution {
 	solution.Hubs = append([]int(nil), solution.Hubs...)
 	solution.Assign = append([]int(nil), solution.Assign...)
 	return solution
+}
+
+func newRunID() string {
+	return time.Now().UTC().Format("20060102T150405.000000000Z")
 }

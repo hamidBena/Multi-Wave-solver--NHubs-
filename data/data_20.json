@@ -1,6 +1,7 @@
 {
   "parameters": {
     "numberOfNodes": 20,
+    "numberOfHubs": 4,
     "alpha": 0.5
   },
   "nodes": [

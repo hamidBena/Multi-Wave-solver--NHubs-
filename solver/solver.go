@@ -7,6 +7,17 @@ type StepResult struct {
 	Done     bool
 }
 
+type Progress struct {
+	Wave          uint64
+	WaveIteration uint64
+	Cost          float64
+	Available     bool
+}
+
+type ProgressProvider interface {
+	Progress() Progress
+}
+
 type Iterative interface {
 	Step() (StepResult, error)
 }

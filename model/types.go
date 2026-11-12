@@ -6,9 +6,10 @@ import (
 )
 
 type Parameters struct {
-	NodeCount int     `json:"numberOfNodes"`
-	HubCount  int     `json:"numberOfHubs"`
-	Alpha     float64 `json:"alpha"`
+	NodeCount     int     `json:"numberOfNodes"`
+	HubCount      int     `json:"numberOfHubs"`
+	Alpha         float64 `json:"alpha"`
+	HubCapacities []int   `json:"hubCapacities,omitempty"`
 }
 
 type Node struct {
@@ -26,6 +27,26 @@ type Instance struct {
 	Nodes      []Node     `json:"nodes"`
 	Quantity   QuantityMatrix
 	distances  []float64
+}
+
+// Capacities returns one capacity per hub slot. Legacy datasets without an
+// explicit list are assigned balanced capacities that sum to the node count.
+func (i *Instance) Capacities() []int {
+	capacities := make([]int, i.Parameters.HubCount)
+	if len(i.Parameters.HubCapacities) == len(capacities) {
+		copy(capacities, i.Parameters.HubCapacities)
+		return capacities
+	}
+	if len(capacities) == 0 {
+		return capacities
+	}
+	for hub := range capacities {
+		capacities[hub] = len(i.Nodes) / len(capacities)
+		if hub < len(i.Nodes)%len(capacities) {
+			capacities[hub]++
+		}
+	}
+	return capacities
 }
 
 type Solution struct {

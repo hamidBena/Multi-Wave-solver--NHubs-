@@ -100,11 +100,54 @@ implementation.
 
 ### Capacity invariant
 
-The current model requires every hub to contain exactly five nodes, including
-the hub itself. Multi-Wave currently uses member swaps because swaps preserve
-all group loads and therefore preserve this invariant. Reassigning a node to
-an underfull hub can be added later if the model changes to allow
-`load <= capacity`.
+The default capacity is five nodes per hub, including the hub itself. A dataset
+can override this with a `parameters.hubCapacities` array containing one
+positive capacity per hub. Capacities must sum to the node count. Multi-Wave
+uses member swaps and capacity-preserving hub promotion, so different hub
+capacities remain feasible throughout the search.
+
+For example, a 12-node instance with three differently sized hubs can use:
+
+```json
+"parameters": {
+  "numberOfNodes": 12,
+  "numberOfHubs": 3,
+  "hubCapacities": [2, 4, 6],
+  "alpha": 0.5
+}
+```
+
+If `hubCapacities` is omitted, capacities are derived as evenly as possible
+from the node and hub counts for backward compatibility.
+
+### Converting official FAF5 data
+
+Download FAF5 from the official Bureau of Transportation Statistics page:
+
+<https://faf.ornl.gov/faf5/>
+
+For this solver, use the regional FAF5 database and the official FAF zone
+shapefile linked under **FAF5 Zones** on that page. The converter
+`convert_faf5.py` accepts a FAF flow CSV plus either a zone CSV or the
+shapefile ZIP:
+
+```powershell
+python -m pip install pyshp
+python convert_faf5.py `
+  --flows path\to\FAF5_flows.csv `
+  --zones path\to\2017_CFS_Metro_Areas_with_FAF.zip `
+  --output data\faf5_2017.json `
+  --year 2017 `
+  --hubs 10 `
+  --alpha 0.5
+```
+
+The flow CSV needs origin/destination FAF zone columns and a quantity column,
+such as `tons_2017`. The converter aggregates commodity and mode rows into
+one undirected demand value per zone pair, because the current model uses a
+symmetric quantity matrix. FAF coordinates are geographic coordinates; for
+large-area accuracy, project them to a planar coordinate system before using
+the result for distance-sensitive comparisons.
 
 ### Inspecting progress in code
 
@@ -133,12 +176,21 @@ the renderer automatically adjusts iterations per frame toward a 60 FPS target
 and reserves part of each frame for rendering. `[` and `]` can still make
 manual one-step adjustments.
 
+Click **Terminate solver** (or press `T`) to stop the current run immediately
+and mark its current solution as finished.
+
 Solutions are saved as `*.solution.json` files containing the hubs, node
 assignments, iteration number, completion state, and cost when the solution is
 complete. Loading a solution restores it for inspection and pauses execution.
 
 Completed runs are appended to `solver_runs.csv` with the dataset path, solver,
 iteration count, final cost, and completion status.
+
+Each Multi-Wave execution writes its own CSV under `runs\`, named with the
+solver, dataset, and run ID. A row is appended whenever its best cost changes.
+The header identifies the solver and dataset, and each row contains the run ID,
+timestamp, wave number, wave iteration, total iteration, best cost, and the
+solution as JSON. This keeps executions separate for later visualization.
 
 To compare solver runs in a readable table, use the included Python report:
 
@@ -149,6 +201,23 @@ python SolverData.py
 This opens a graphical dashboard with score and iteration charts, summary
 cards, a run table, and dropdown filters for solver and dataset. Lower scores
 are better. Use `--csv path\to\solver_runs.csv` to load a different log.
+
+To inspect one Multi-Wave run as an interactive depth map:
+
+```powershell
+python depth_map.py
+```
+
+The program opens a file picker for the solver log CSV and reads the node data
+path from its `dataset` column. A CSV path can still be supplied as a
+positional argument for scripted use.
+
+The tool accepts the current `solution` JSON log column and the older
+`hubs`/`assignment` columns. For every row it looks up the hub node coordinates
+from the dataset and uses their unweighted arithmetic mean as `(x, y)`. The
+CSV `cost` is used directly as depth; no cost is recalculated. It shows a
+rotatable 3D map plus a fixed-bounds top-down binned view. Bin labels are
+`min/mean/max`. Use `--color-by-spread` to scale top-down markers by hub spread.
 
 The full model dump is intentionally opt-in because it is expensive for large
 graphs:

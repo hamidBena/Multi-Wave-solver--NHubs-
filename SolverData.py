@@ -13,7 +13,7 @@ import tkinter as tk
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
-from tkinter import messagebox, ttk
+from tkinter import filedialog, messagebox, ttk
 
 
 @dataclass(frozen=True)
@@ -213,10 +213,24 @@ class SolverDashboard(tk.Tk):
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Open the solver runs dashboard.")
-    parser.add_argument("--csv", type=Path, default=Path(__file__).with_name("solver_runs.csv"))
+    parser.add_argument("--csv", type=Path, help="solver runs CSV file")
     args = parser.parse_args()
+    if args.csv is None:
+        picker = tk.Tk()
+        picker.withdraw()
+        csv_name = filedialog.askopenfilename(
+            parent=picker,
+            title="Select solver runs CSV",
+            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")],
+        )
+        picker.destroy()
+        if not csv_name:
+            return
+        csv_path = Path(csv_name)
+    else:
+        csv_path = args.csv
     try:
-        runs = load_runs(args.csv)
+        runs = load_runs(csv_path)
     except ValueError as error:
         root = tk.Tk()
         root.withdraw()

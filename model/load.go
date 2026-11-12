@@ -79,6 +79,25 @@ func (i *Instance) Validate() error {
 		return fmt.Errorf("parameters.numberOfHubs=%d, but must be between 0 and %d",
 			i.Parameters.HubCount, len(i.Nodes))
 	}
+	if len(i.Parameters.HubCapacities) != 0 &&
+		len(i.Parameters.HubCapacities) != i.Parameters.HubCount {
+		return fmt.Errorf("parameters.hubCapacities has %d entries, expected %d",
+			len(i.Parameters.HubCapacities), i.Parameters.HubCount)
+	}
+	if len(i.Parameters.HubCapacities) != 0 {
+		total := 0
+		for hub, capacity := range i.Parameters.HubCapacities {
+			if capacity < 1 {
+				return fmt.Errorf("parameters.hubCapacities[%d]=%d; capacities must be positive",
+					hub, capacity)
+			}
+			total += capacity
+		}
+		if total != len(i.Nodes) {
+			return fmt.Errorf("parameters.hubCapacities sum to %d, expected %d",
+				total, len(i.Nodes))
+		}
+	}
 	if i.Quantity.Size != len(i.Nodes) ||
 		len(i.Quantity.Data) != len(i.Nodes)*(len(i.Nodes)-1)/2 {
 		return fmt.Errorf("quantity matrix does not match node count")

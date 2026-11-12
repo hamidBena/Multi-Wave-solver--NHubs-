@@ -14,12 +14,6 @@ import (
 	"NHubs/solver"
 )
 
-// MultiWaveConfig controls the amount of work performed by MultiWave.
-//
-// A wave is a bounded search phase. After WaveIterations attempts, the best
-// solution found during that phase is stored in the elite pool and a new wave
-// starts from elite knowledge. Keeping these limits explicit makes the
-// algorithm easy to inspect and prevents continuous mode from running forever.
 type MultiWaveConfig struct {
 	WaveIterations    uint64
 	MaxWaves          uint64
@@ -29,24 +23,21 @@ type MultiWaveConfig struct {
 	Seed              int64
 }
 
-// DefaultMultiWaveConfig is deliberately small enough for interactive use.
 var DefaultMultiWaveConfig = MultiWaveConfig{
-	WaveIterations:    6000, // was 300: search longer before restarti
-	MaxWaves:          10,   // was 500: perform more waves
-	EliteSize:         5,    // retain more strong solutions
-	PerturbationSwaps: 20,   // keep moderate; controls restart divers
-	TabuTenure:        30,   // avoid revisiting recent moves longer
+	WaveIterations:    1000,
+	MaxWaves:          50,
+	EliteSize:         5,
+	PerturbationSwaps: 20,
+	TabuTenure:        30,
 	Seed:              time.Now().UnixNano(),
 }
 
-// EliteCandidate is a solution retained as useful historical knowledge.
 type EliteCandidate struct {
 	Solution model.Solution
 	Cost     float64
 }
 
-// MultiWaveStatus is diagnostic state that can be displayed by a renderer or
-// logged without exposing mutable internal slices.
+// Status for logging
 type MultiWaveStatus struct {
 	Wave            uint64
 	WaveIteration   uint64
@@ -57,15 +48,6 @@ type MultiWaveStatus struct {
 	Finished        bool
 }
 
-// MultiWave is an independent iterative metaheuristic. It keeps:
-//
-//   - current: the solution being explored now;
-//   - waveBest: the best solution in the current wave;
-//   - best: the best solution found across every wave;
-//   - elite: a bounded archive of strong solutions from previous waves.
-//
-// A Step performs one randomized perturbation and one acceptance decision.
-// The solver engine can therefore execute it one step at a time or in batches.
 type MultiWave struct {
 	instance *model.Instance
 	config   MultiWaveConfig
@@ -104,10 +86,12 @@ func NewMultiWaveWithConfig(instance *model.Instance, config MultiWaveConfig) (*
 		return nil, fmt.Errorf("multi-wave solver requires between 1 and %d hubs, got %d",
 			len(instance.Nodes), target)
 	}
-	if target*maxNodesPerHub < len(instance.Nodes) {
-		return nil, fmt.Errorf(
-			"multi-wave solver cannot assign %d nodes with %d hubs at a capacity of %d nodes per hub",
-			len(instance.Nodes), target, maxNodesPerHub)
+	hubSlots := make([]int, target)
+	for slot := range hubSlots {
+		hubSlots[slot] = slot
+	}
+	if err := validateCapacity(instance, hubSlots); err != nil {
+		return nil, fmt.Errorf("multi-wave solver: %w", err)
 	}
 
 	initial, err := randomInitialSolution(instance, target, rand.New(rand.NewSource(config.Seed)))
@@ -174,8 +158,6 @@ func newMultiWave(instance *model.Instance, seed model.Solution, config MultiWav
 	return m, nil
 }
 
-// Step explores one candidate. A worsening candidate can occasionally be
-// accepted to escape a local optimums; the global best is always preserved.
 func (m *MultiWave) Step() (solver.StepResult, error) {
 	if m.finished {
 		return solver.StepResult{Solution: cloneSolution(m.best), Done: true}, nil
@@ -209,7 +191,6 @@ func (m *MultiWave) Step() (solver.StepResult, error) {
 	return solver.StepResult{Solution: cloneSolution(m.best), Done: m.finished}, nil
 }
 
-// Status returns progress for a UI panel or experiment logger.
 func (m *MultiWave) Status() MultiWaveStatus {
 	return MultiWaveStatus{
 		Wave:            m.wave,
@@ -222,6 +203,16 @@ func (m *MultiWave) Status() MultiWaveStatus {
 	}
 }
 
+func (m *MultiWave) Progress() solver.Progress {
+	status := m.Status()
+	return solver.Progress{
+		Wave:          status.Wave,
+		WaveIteration: status.WaveIteration,
+		Cost:          status.BestCost,
+		Available:     true,
+	}
+}
+
 func (m *MultiWave) finishWave() error {
 	m.addElite(m.waveBest, m.waveBestCost)
 	if m.wave >= m.config.MaxWaves {
@@ -231,7 +222,7 @@ func (m *MultiWave) finishWave() error {
 
 	m.wave++
 	m.waveIteration = 0
-	base := m.elite[m.random.Intn(len(m.elite))].Solution
+	base := m.elite[m.random.Intn(len(m.elite))].Solution //random elite selection
 	m.current = m.perturb(base)
 	cost, err := m.instance.TotalCost(m.current)
 	if err != nil {
@@ -255,7 +246,7 @@ type mwMove struct {
 
 func (m *MultiWave) applyTo(s *model.Solution, move mwMove) {
 	if !move.relocate {
-		s.Assign[move.a], s.Assign[move.b] = s.Assign[move.b], s.Assign[move.a]
+		s.Assign[move.a], s.Assign[move.b] = s.Assign[move.b], s.Assign[move.a] // swap
 		return
 	}
 	for node, hub := range s.Assign {
@@ -406,7 +397,7 @@ func (m *MultiWave) affectedCost(solution *model.Solution, nodes []int) float64 
 func (m *MultiWave) addElite(solution model.Solution, cost float64) {
 	for _, candidate := range m.elite {
 		if slices.Equal(candidate.Solution.Assign, solution.Assign) {
-			return
+			return //don't store clones
 		}
 	}
 	m.elite = append(m.elite, EliteCandidate{Solution: cloneSolution(solution), Cost: cost})
@@ -418,9 +409,6 @@ func (m *MultiWave) addElite(solution model.Solution, cost float64) {
 	}
 }
 
-// perturb creates a feasible neighboring solution. Swapping two non-hub
-// members preserves every hub load, which is important because this project
-// currently requires each hub to contain exactly five nodes including itself.
 func (m *MultiWave) perturb(source model.Solution) model.Solution {
 	out := cloneSolution(source)
 	members := make([]int, 0, len(out.Assign))
@@ -445,7 +433,7 @@ func (m *MultiWave) perturb(source model.Solution) model.Solution {
 		for attempt := 0; attempt < 20 && len(members) >= 2; attempt++ {
 			a := members[m.random.Intn(len(members))]
 			b := members[m.random.Intn(len(members))]
-			if a != b && out.Assign[a] != out.Assign[b] {
+			if a != b && out.Assign[a] != out.Assign[b] { //they're not the same and don't share the same hub
 				out.Assign[a], out.Assign[b] = out.Assign[b], out.Assign[a]
 				break
 			}
@@ -459,17 +447,20 @@ func randomInitialSolution(instance *model.Instance, hubCount int, random *rand.
 		Hubs:   make([]int, hubCount),
 		Assign: make([]int, len(instance.Nodes)),
 	}
+	nodes := make([]int, len(instance.Nodes))
+	for node := range nodes {
+		nodes[node] = node
+	}
+	random.Shuffle(len(nodes), func(i, j int) {
+		nodes[i], nodes[j] = nodes[j], nodes[i]
+	})
 	for index := range solution.Hubs {
-		solution.Hubs[index] = index
-		solution.Assign[index] = index
+		hub := nodes[index]
+		solution.Hubs[index] = hub
+		solution.Assign[hub] = hub
 	}
 	members := make([]int, 0, len(instance.Nodes)-hubCount)
-	for node := hubCount; node < len(instance.Nodes); node++ {
-		members = append(members, node)
-	}
-	random.Shuffle(len(members), func(i, j int) {
-		members[i], members[j] = members[j], members[i]
-	})
+	members = append(members, nodes[hubCount:]...)
 	load := make([]int, len(instance.Nodes))
 	for _, hub := range solution.Hubs {
 		load[hub] = 1
@@ -477,7 +468,7 @@ func randomInitialSolution(instance *model.Instance, hubCount int, random *rand.
 	for _, node := range members {
 		open := make([]int, 0, hubCount)
 		for _, hub := range solution.Hubs {
-			if load[hub] < maxNodesPerHub {
+			if load[hub] < hubCapacity(instance, solution.Hubs, hub) {
 				open = append(open, hub)
 			}
 		}

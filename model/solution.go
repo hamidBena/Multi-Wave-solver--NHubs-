@@ -5,8 +5,6 @@ import (
 	"math"
 )
 
-const requiredAssignmentsPerHub = 5
-
 func (inst *Instance) TotalCost(solution Solution) (float64, error) {
 	var totalCost float64
 	for i := 0; i < len(inst.Nodes); i++ {
@@ -80,13 +78,14 @@ func (i *Instance) ValidateSolution(solution Solution) error {
 		}
 		counts[hub]++
 	}
-	for _, hub := range solution.Hubs {
+	capacities := i.Capacities()
+	for slot, hub := range solution.Hubs {
 		if solution.Assign[hub] != hub {
 			return fmt.Errorf("invalid hub %d", hub)
 		}
-		if counts[hub] != requiredAssignmentsPerHub {
-			return fmt.Errorf("hub %d has %d assigned nodes including itself, expected %d",
-				hub, counts[hub], requiredAssignmentsPerHub)
+		if counts[hub] != capacities[slot] {
+			return fmt.Errorf("hub %d has %d assigned nodes, expected %d",
+				hub, counts[hub], capacities[slot])
 		}
 	}
 	return nil
