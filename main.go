@@ -10,9 +10,10 @@ import (
 	"NHubs/renderer"
 	"NHubs/solver"
 
+	_ "net/http/pprof"
+
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/ncruces/zenity"
-	_ "net/http/pprof"
 )
 
 func main() {
@@ -38,16 +39,22 @@ func main() {
 	}
 	solution := solver.DefaultSolution(instance)
 
-	multiWave, err := algorithms.NewMultiWave(instance)
+	/*multiWave, err := algorithms.NewMultiWave(instance)
 	if err != nil {
 		log.Fatal(err)
-	}
+	}*/
+
 	/*localSearch, err := algorithms.NewLocalSearch(instance)
 	if err != nil {
 		log.Fatal(err)
 	}*/
 
-	engine, err := solver.NewEngine(multiWave, solution, 1)
+	multiWave2, err := algorithms.NewMultiWave2(instance)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	engine, err := solver.NewEngine(multiWave2, solution, 1)
 	if err != nil {
 		log.Fatal(err)
 	}

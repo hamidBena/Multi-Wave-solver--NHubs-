@@ -163,6 +163,7 @@ func (m *MultiWave) Step() (solver.StepResult, error) {
 		return solver.StepResult{Solution: cloneSolution(m.best), Done: true}, nil
 	}
 
+	// 
 	move, candidateCost, found, err := m.bestMove()
 	if err != nil {
 		return solver.StepResult{}, err
@@ -172,10 +173,13 @@ func (m *MultiWave) Step() (solver.StepResult, error) {
 		m.applyTo(&m.current, move)
 		m.currentCost = candidateCost
 	}
+
+	// f(x^c) > f(x*)
 	if m.currentCost < m.waveBestCost {
 		m.waveBest = cloneSolution(m.current)
 		m.waveBestCost = m.currentCost
 	}
+
 	if m.currentCost < m.bestCost {
 		m.best = cloneSolution(m.current)
 		m.bestCost = m.currentCost
