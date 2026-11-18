@@ -1,0 +1,2 @@
+"solver,dataset,run_id,timestamp,wave,wave_iteration,iteration,cost,solution"
+multiwave2,C:\Users\linou\OneDrive\Desktop\algorithm tp\Multi-Wave-solver--NHubs-\data\data_25.json,20261118T081610.532534100Z,2026-11-18T08:16:13.2501494Z,1,1,1,2348793.354693,"{""hubs"":[2,12,18,1,0],""assign"":[0,1,2,12,2,12,0,1,1,18,18,18,12,12,18,12,2,2,18,0,1,1,0,2,0]}"

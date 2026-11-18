@@ -14,25 +14,28 @@ import (
 
 // MultiWave2Config encapsulates strictly the parameters defined in Glover's paper.
 type MultiWave2Config struct {
-	MaxWaves uint    // MaxWave limit
-	MaxPass  uint    // MaxPass limit
-	Seed     int64   // Random seed for starting solution / probabilistic choices
-	Lambda   float64 // Threshold parameter λ for candidate list filtering
-	P        float64 // Power parameter p for probabilistic weights (w_i = Evaluation(m_i)^p)
-	KStar    int     // Total number of horizontal intervention points scheduled per wave (k*)[cite: 16]
-	D        int     // Number of moves dropped per horizontal step (d_k)[cite: 13, 17]
-	Ne       int     // Estimated final size of n(AMR) when reaching a boundary solution[cite: 16]
+	MaxWaves    uint
+	MaxPass     uint
+	Seed        int64
+	Lambda      float64
+	P           float64
+	KStar       int
+	D           int
+	Ne          int
+	Alpha       float64 // Ne estimation smoothness factor (low pass filter 0-1)
+	ContinousNe float64 // Ne as a float for the low pass filter, then rounded into Ne for the next wave
 }
 
 var DefaultMultiWave2Config = MultiWave2Config{
-	MaxWaves: 10000,
-	MaxPass:  10000,
+	MaxWaves: 250,
+	MaxPass:  100,
 	Seed:     time.Now().UnixNano(),
-	Lambda:   0.8,
-	P:        1.0,
-	KStar:    3,
-	D:        1,
-	Ne:       20,
+	Lambda:   0.2, // favor the lower half of CL (mean + 0.2(max-mean))
+	P:        0.1, // to not limit the gap between best and worst solutions
+	KStar:    5,
+	D:        10,
+	Ne:       70,
+	Alpha:    0.5, // smoothness factor for Ne estimation
 }
 
 type MultiWave2Status struct {
@@ -103,6 +106,8 @@ func newMultiWave2(instance *model.Instance, seed model.Solution, config MultiWa
 		}
 	}
 
+	config.ContinousNe = float64(config.Ne) // Initialize ContinousNe for the first wave
+
 	m := &MultiWave2{
 		instance:    instance,
 		config:      config,
@@ -133,7 +138,7 @@ func (m *MultiWave2) Step() (solver.StepResult, error) {
 		}
 		m.kIndex++
 	} else {
-		// 2. Otherwise, execute a Vertical Phase (Algorithm 4)
+		// 2. Otherwise, execute a Vertical Phase
 		moved, found, err := m.verticalPhase()
 		if err != nil {
 			return solver.StepResult{}, err
@@ -161,12 +166,11 @@ func (m *MultiWave2) verticalPhase() (mw2Move, bool, error) {
 
 	// Select move from CL using Probabilistic Tabu Search (P-TS) (Section 2.1)
 	selectedMove := m.selectProbabilisticMove(cl)
+	affected := m.affectedNodes(selectedMove)
+	oldCost := m.affectedCost(m.current, affected)
 	m.applyMove(&m.current, selectedMove)
-	cost, err := m.instance.TotalCost(m.current)
-	if err != nil {
-		return mw2Move{}, false, err
-	}
-	m.currentCost = cost
+	newCost := m.affectedCost(m.current, affected)
+	m.currentCost += newCost - oldCost
 
 	if m.currentCost < m.bestCost {
 		m.best = cloneSolution2(m.current)
@@ -189,7 +193,11 @@ func (m *MultiWave2) horizontalPhase() error {
 		for j := 0; j < d && len(m.amr) > 0; j++ {
 			reverseMove := m.amr[0]
 			m.amr = m.amr[1:] // Remove from AMR, making it available to CL
+			affected := m.affectedNodes(reverseMove)
+			oldCost := m.affectedCost(m.current, affected)
 			m.applyReverseMove(&m.current, reverseMove)
+			newCost := m.affectedCost(m.current, affected)
+			m.currentCost += newCost - oldCost
 		}
 
 		// Add d new moves from CL
@@ -199,16 +207,15 @@ func (m *MultiWave2) horizontalPhase() error {
 				break
 			}
 			selectedMove := m.selectProbabilisticMove(cl)
+			affected := m.affectedNodes(selectedMove)
+			oldCost := m.affectedCost(m.current, affected)
 			m.applyMove(&m.current, selectedMove)
+			newCost := m.affectedCost(m.current, affected)
+			m.currentCost += newCost - oldCost
 			m.amr = append(m.amr, selectedMove) // Add to new last position of AMR
 		}
 	}
 
-	cost, err := m.instance.TotalCost(m.current)
-	if err != nil {
-		return err
-	}
-	m.currentCost = cost
 	if m.currentCost < m.bestCost {
 		m.best = cloneSolution2(m.current)
 		m.bestCost = m.currentCost
@@ -231,13 +238,12 @@ func (m *MultiWave2) buildCandidateList() ([]mw2Move, error) {
 				continue
 			}
 			candidate := cloneSolution2(m.current)
+			affected := m.affectedNodes(mw2Move{a: a, b: b})
+			oldCost := m.affectedCost(m.current, affected)
 			candidate.Assign[a], candidate.Assign[b] = candidate.Assign[b], candidate.Assign[a]
-			cost, err := m.instance.TotalCost(candidate)
-			if err != nil {
-				continue
-			}
-			eval := m.currentCost - cost // Maximization objective change (improving > 0)
-			if eval > 0 {                // Restrict to improving moves for iterated improvement
+			newCost := m.affectedCost(candidate, affected)
+			eval := oldCost - newCost // Maximization objective change (improving > 0)
+			if eval > 0 {             // Restrict to improving moves for iterated improvement
 				allMoves = append(allMoves, mw2Move{a: a, b: b, evaluation: eval})
 			}
 		}
@@ -308,6 +314,8 @@ func (m *MultiWave2) finishWave() error {
 	m.wave++
 	m.amr = m.amr[:0]
 	m.kIndex = 1
+	m.config.ContinousNe = m.config.ContinousNe*m.config.Alpha + (1-m.config.Alpha)*float64(m.totalIterations)
+	m.config.Ne = int(m.config.ContinousNe)
 	return nil
 }
 
@@ -318,6 +326,35 @@ func (m *MultiWave2) applyMove(s *model.Solution, move mw2Move) {
 func (m *MultiWave2) applyReverseMove(s *model.Solution, move mw2Move) {
 	// Reversing a swap is executing the swap again
 	s.Assign[move.a], s.Assign[move.b] = s.Assign[move.b], s.Assign[move.a]
+}
+
+func (m *MultiWave2) affectedNodes(move mw2Move) []int {
+	return []int{move.a, move.b}
+}
+
+func (m *MultiWave2) affectedCost(solution model.Solution, nodes []int) float64 {
+	n := len(solution.Assign)
+	affected := make([]bool, n)
+	for _, node := range nodes {
+		affected[node] = true
+	}
+
+	total := 0.0
+	for from := 0; from < n; from++ {
+		if !affected[from] {
+			continue
+		}
+		for to := 0; to < n; to++ {
+			if from == to {
+				continue
+			}
+			if affected[to] && to < from {
+				continue
+			}
+			total += m.instance.Cost(solution, from, to)
+		}
+	}
+	return total
 }
 
 func (m *MultiWave2) Status() MultiWave2Status {
